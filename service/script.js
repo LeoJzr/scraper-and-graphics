@@ -78,6 +78,7 @@ app.get('/api/getData', async (req, res) => {
 
 app.post('/api/startScrap', async (req, res) => {
   try {
+    const { dias } = req.body
     const browser = await puppeteer.launch({ headless: false })
 
     const page = await browser.newPage()
@@ -99,26 +100,31 @@ app.post('/api/startScrap', async (req, res) => {
     const canvasElement = await page.$('canvas[data-name="pane-canvas"]')
     const { x, y } = await canvasElement.boundingBox()
 
-    const coords = getCoords(x, y)
+    const coords = getCoords(x, y, dias)
 
-    const candles = []
-    const now = Math.floor(Date.now() / 1000) // Tiempo actual en segundos
-    const daysAgo = 5 * 24 * 60 * 60 // 5 días en segundos
-    let startTime = now - daysAgo
+    let candles = []
 
     for (const coord of coords) {
       await page.mouse.move(coord.x, coord.y)
 
       const elements = await page.$$('.valueValue-l31H9iuA')
       const candle = {
-        time: startTime,
         open: parseFloat(await elements[1].evaluate(el => el.textContent)),
         high: parseFloat(await elements[2].evaluate(el => el.textContent)),
         low: parseFloat(await elements[3].evaluate(el => el.textContent)),
-        close: parseFloat(await elements[4].evaluate(el => el.textContent))
+        close: parseFloat(await elements[4].evaluate(el => el.textContent)),
+        coordx: coord.x
       }
-
       candles.push(candle)
+    }
+
+    candles = candles.reverse()
+
+    const now = Math.floor(Date.now() / 1000)
+    let startTime = now
+
+    for (let i = 0; i < candles.length; i++) {
+      candles[i].time = startTime
       startTime += 24 * 60 * 60
     }
 
