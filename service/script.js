@@ -106,6 +106,7 @@ app.post('/api/startScrap', async (req, res) => {
 
     for (const coord of coords) {
       await page.mouse.move(coord.x, coord.y)
+      page.setDefaultTimeout(3000)
 
       const elements = await page.$$('.valueValue-l31H9iuA')
       const candle = {
@@ -118,15 +119,14 @@ app.post('/api/startScrap', async (req, res) => {
       candles.push(candle)
     }
 
-    candles = candles.reverse()
-
     const now = Math.floor(Date.now() / 1000)
     let startTime = now
 
     for (let i = 0; i < candles.length; i++) {
       candles[i].time = startTime
-      startTime += 24 * 60 * 60
+      startTime -= 24 * 60 * 60
     }
+    candles = candles.reverse()
 
     fs.writeFileSync(filePath, JSON.stringify(candles, null, 2))
     console.log('Datos guardados en data/data.json')
